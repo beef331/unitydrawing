@@ -14,12 +14,13 @@ public class Drawer : MonoBehaviour
     [SerializeField]
     private RenderTexture rt;
     private Material material;
-    private Vector4 lastPos;
+    private Vector4 lastPos, lastLastPos;
     [SerializeField]
     private float colSwitchDelay = .1f;
     private float lastSwitch = 0;
     [SerializeField]
     private float maxSize = 200, minSize = 10;
+    private float alpha = 1;
 
 
     void Start()
@@ -66,7 +67,9 @@ public class Drawer : MonoBehaviour
             currentCol = (currentCol + cols.Length + 1) % cols.Length;
             lastSwitch = Time.time;
         }
-        material.SetColor("_Color", Color.Lerp(cols[currentCol], cols[(currentCol + 1 + cols.Length) % cols.Length], (Time.time - lastSwitch) / colSwitchDelay));
+        Color thisFrameCol = Color.Lerp(cols[currentCol], cols[(currentCol + 1 + cols.Length) % cols.Length], (Time.time - lastSwitch) / colSwitchDelay);
+        thisFrameCol.a = alpha;
+        material.SetColor("_Color",thisFrameCol);
         //brushRadius = Mathf.Clamp(Mathf.Abs(Mathf.Sin(Time.time)) * maxSize, minSize, maxSize);
         if(Input.GetKey(KeyCode.O)){
                     brushRadius = Mathf.Clamp(brushRadius - Time.deltaTime * 20f, minSize, maxSize);
@@ -74,12 +77,20 @@ public class Drawer : MonoBehaviour
         if(Input.GetKey(KeyCode.P)){
                     brushRadius = Mathf.Clamp(brushRadius + Time.deltaTime * 20f, minSize, maxSize);
         }
+        if(Input.GetKey(KeyCode.U)){
+                    alpha = Mathf.Clamp(alpha - Time.deltaTime,0,1);
+        }
+        if(Input.GetKey(KeyCode.I)){
+                    alpha = Mathf.Clamp(alpha + Time.deltaTime,0,1);
+        }
         if (Input.GetMouseButton(0))
         {
             DrawOnTex();
         }
+        lastLastPos = lastPos;
         lastPos = mousePos;
         material.SetVector("_LastPos", lastPos);
+        material.SetVector("_LastLastPos", lastLastPos);
         if (Input.GetKeyDown(KeyCode.Backspace))
         {
             Clear();

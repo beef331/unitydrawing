@@ -42,21 +42,37 @@
             float4 _MainTex_TexelSize;
             float4 _MousePos;
             float4 _LastPos;
+            float4 _LastLastPos;
             float4 _Color;
             float _Decay;
+
+            static const float STEPS = 100;
+
+
+            float2 Bezier(float2 p0, float2 p1, float2 p2, float t){
+
+                return (1-t) * (1-t)  * p0 + 2*t *(1-t)*p1 + t*t*p2;
+
+            }
+
+
+
             fixed4 frag (v2f i) : SV_Target
             {
-                for(int j=0; j < 100;j++){
-                    float2 mousePos = lerp(_LastPos.xy,_MousePos.xy,j/100.0);
-                    float2 delta = abs(mousePos.xy - i.uv);
+                float2 inputDir = normalize((_LastPos-_LastLastPos));
+                float2 outputDir = normalize(_MousePos - _LastPos);
+                float2 perpDir = float2(outputDir.y,-outputDir.x);
+                float dist = distance(_LastPos,_MousePos);
+                float2 anchor = dot(inputDir,perpDir) * perpDir * dist/2 + (_LastPos + outputDir * dist/2);
+                fixed4 pix = tex2D(_MainTex,i.uv);
+                for(int j=0; j < STEPS;j++){
+                    float2 curvePos = Bezier(_LastPos,anchor,_MousePos,j/STEPS); 
+                    float2 delta = abs(curvePos.xy - i.uv);
                     delta.x *= (_ScreenParams.x/_ScreenParams.y);
-                    if(length(delta) <= lerp(_LastPos.z,_MousePos.z,j/100.0) * _MainTex_TexelSize.x){
-                        fixed4 col = _Color;
-                        _Color.a = 1;
-                        return _Color;
+                    if(length(delta) <= lerp(_LastPos.z,_MousePos.z,j/STEPS) * _MainTex_TexelSize.x){
+                        return float4(lerp(pix.rgb,_Color.rgb,_Color.a),1);
                     }
                 }
-                fixed4 pix = tex2D(_MainTex,i.uv);
                 return saturate(pix + (unity_DeltaTime.x * _Decay));
             }
             ENDCG
